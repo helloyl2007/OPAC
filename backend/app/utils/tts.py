@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 # 阿里云 TTS 配置 
 ALI_TTS_CONFIG = {
-    '': '',  # 替换为你的阿里云Access Key ID
-    '': '',  # 替换为你的阿里云Access Key Secret
+    'access_key_id': '',  # 替换为你的阿里云Access Key ID
+    'access_key_secret': '',  # 替换为你的阿里云Access Key Secret
     'region': 'cn-shanghai',  # 使用标准区域
     'host': 'nls-gateway.cn-shanghai.aliyuncs.com',  
     'format': 'mp3',
