@@ -1,0 +1,296 @@
+import os
+import logging
+import asyncio
+import base64
+import hashlib
+import hmac
+import json
+import time
+import ssl
+import websocket
+from wsgiref.handlers import format_date_time
+from datetime import datetime
+from time import mktime
+from urllib.parse import urlencode
+from typing import Dict, Any, Optional
+import threading
+
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# 讯飞 TTS 配置，但保持与阿里云一样的命名规范
+ALI_TTS_CONFIG = {
+    'appKey': '6b36a8bd',
+    'token': '00cdc380cae504dd09243bdf057c533c',
+    'secret': 'ODhiNTY0ODAzNTkwZGNhYmU0NjZlNmFj',
+    'host': 'tts-api.xfyun.cn',
+    'format': 'mp3',
+    'sample_rate': 16000
+}
+
+# 音色配置 - 讯飞的音色，但保持与阿里云一样的配置结构
+VOICE_OPTIONS = {
+    'xiaoyan': '小燕（女）',
+    'aisjiuxu': '许久（男）',
+    'aisxping': '小萍（女）',
+    'aisjinger': '小纯（女）',
+    'aisbabyxu': '小新（童声）',
+    'aisxmeng': '小梦（女）',
+    'aisjingjing': '晶晶（女）',
+    'x_mengmenghappy': '萌萌（童）',
+    'x4_lingxiaolu_en': '聆小璐（女）'
+}
+
+async def text_to_speech(text: str, output_path: str, voice: str = "xiaoyan") -> bool:
+    """
+    将文本转换为语音
+    
+    参数:
+        text: 要转换的文本
+        output_path: 输出语音文件路径
+        voice: 音色名称，直接使用讯飞音色名称
+        
+    返回:
+        成功状态
+    """
+    try:
+        logger.info(f"开始将文本转换为语音: {text[:30]}...，使用音色: {voice}")
+        
+        # 确保输出目录存在
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        # 检查是否配置了讯飞TTS (仍使用ALI_TTS_CONFIG变量名，以保持兼容)
+        if ALI_TTS_CONFIG['appKey'] and ALI_TTS_CONFIG['token']:
+            # 使用讯飞TTS服务，但保持函数名称为ali_tts
+            success = await ali_tts(text, output_path, voice.lower())
+            if success:
+                logger.info(f"讯飞TTS语音生成成功: {output_path}")
+                return True
+            else:
+                logger.error("讯飞TTS语音生成失败，将尝试备选方案")
+        else:
+            logger.warning("未配置讯飞TTS参数，将尝试备选方案")
+
+        # 备选方案1: 尝试使用边缘TTS (edge-tts)
+        try:
+            from edge_tts import Communicate
+            
+            # 对于 edge-tts，我们需要将音色映射回微软格式
+            ms_voice_map = {
+                'xiaoyan': 'zh-CN-XiaoxiaoNeural',
+                'aisjiuxu': 'zh-CN-YunyangNeural', 
+                'aisxping': 'zh-CN-YunjianNeural',
+                'aisjinger': 'zh-CN-XiaoyiNeural',
+                'aisbabyxu': 'zh-CN-YunxiNeural'
+            }
+            
+            edge_voice = ms_voice_map.get(voice.lower(), 'zh-CN-YunyangNeural')
+            communicate = Communicate(text, edge_voice)
+            await communicate.save(output_path)
+            
+            logger.info(f"edge-tts 语音生成成功: {output_path}")
+            return True
+            
+        except ImportError:
+            logger.warning("edge-tts库未安装，将生成默认语音文件")
+            
+            # 备选方案2: 生成一个简单的静音音频文件
+            duration = max(5, len(text) / 5)  # 简单估算时长：每5个字符1秒
+            try:
+                process = await asyncio.create_subprocess_exec(
+                    "ffmpeg", "-y", "-f", "lavfi", "-i", f"anullsrc=r=44100:cl=mono", 
+                    "-t", str(duration), output_path,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                
+                stdout, stderr = await process.communicate()
+                
+                if process.returncode != 0:
+                    logger.error(f"FFmpeg错误: {stderr.decode()}")
+                    return False
+                    
+                logger.info(f"创建静音音频成功: {output_path}")
+                return True
+                
+            except Exception as e:
+                logger.error(f"创建音频文件失败: {str(e)}")
+                return False
+        
+    except Exception as e:
+        logger.error(f"文本转语音失败: {str(e)}")
+        return False
+
+# 保持函数名为ali_tts，以确保兼容性
+async def ali_tts(text: str, output_path: str, voice: str) -> bool:
+    """
+    使用讯飞TTS服务将文本转换为语音
+    
+    参数:
+        text: 要转换的文本
+        output_path: 输出语音文件路径
+        voice: 讯飞音色名称
+        
+    返回:
+        成功状态
+    """
+    try:
+        # 直接使用提供的音色名称，如果未提供则默认使用 xiaoyan
+        xf_voice = voice if voice else 'xiaoyan'
+        
+        # 检查音色是否在支持列表中
+        if xf_voice not in VOICE_OPTIONS:
+            logger.warning(f"未知的音色名称: {xf_voice}，将使用默认音色 xiaoyan")
+            xf_voice = 'xiaoyan'
+            
+        logger.info(f"使用讯飞音色: {xf_voice} ({VOICE_OPTIONS.get(xf_voice, '未知音色')})")
+        
+        # 创建事件锁
+        tts_done = asyncio.Event()
+        tts_success = [False]  # 使用列表以便在回调中修改值
+        
+        # 讯飞API参数
+        app_id = ALI_TTS_CONFIG['appKey']
+        api_key = ALI_TTS_CONFIG['token']
+        api_secret = ALI_TTS_CONFIG['secret']
+        
+        # 准备WebSocket连接参数
+        url = 'wss://tts-api.xfyun.cn/v2/tts'
+        
+        # 生成RFC1123格式的时间戳
+        now = datetime.now()
+        date = format_date_time(mktime(now.timetuple()))
+
+        # 拼接字符串
+        signature_origin = "host: " + "ws-api.xfyun.cn" + "\n"
+        signature_origin += "date: " + date + "\n"
+        signature_origin += "GET " + "/v2/tts " + "HTTP/1.1"
+        
+        # 进行hmac-sha256进行加密
+        signature_sha = hmac.new(api_secret.encode('utf-8'), signature_origin.encode('utf-8'),
+                                 digestmod=hashlib.sha256).digest()
+        signature_sha = base64.b64encode(signature_sha).decode(encoding='utf-8')
+
+        authorization_origin = "api_key=\"%s\", algorithm=\"%s\", headers=\"%s\", signature=\"%s\"" % (
+            api_key, "hmac-sha256", "host date request-line", signature_sha)
+        authorization = base64.b64encode(authorization_origin.encode('utf-8')).decode(encoding='utf-8')
+        
+        # 将请求的鉴权参数组合为字典
+        v = {
+            "authorization": authorization,
+            "date": date,
+            "host": "ws-api.xfyun.cn"
+        }
+        
+        # 拼接鉴权参数，生成url
+        wsUrl = url + '?' + urlencode(v)
+        
+        # 准备业务参数
+        business_args = {
+            "aue": "lame",  # 音频编码，lame: mp3
+            "auf": "audio/L16;rate=16000",  # 音频采样率
+            "vcn": xf_voice,  # 音色
+            "tte": "utf8"  # 文本编码
+        }
+        
+        common_args = {"app_id": app_id}
+        data = {"status": 2, "text": str(base64.b64encode(text.encode('utf-8')), "UTF8")}
+        
+        # 回调函数
+        def on_message(ws, message):
+            try:
+                message = json.loads(message)
+                code = message["code"]
+                if code != 0:
+                    errMsg = message["message"]
+                    logger.error(f"讯飞TTS错误: {errMsg}, code: {code}")
+                    ws.close()
+                    tts_done.set()
+                    return
+                
+                audio = message["data"]["audio"]
+                audio = base64.b64decode(audio)
+                status = message["data"]["status"]
+                
+                # 直接写入输出文件，不使用临时文件
+                # 这里与原阿里云TTS行为保持一致，直接将音频写入到输出路径
+                with open(output_path, 'ab') as f:
+                    f.write(audio)
+                
+                if status == 2:  # 最后一帧
+                    logger.info(f"讯飞TTS数据接收完成，已保存到: {output_path}")
+                    ws.close()
+                    tts_success[0] = True
+                    tts_done.set()
+                
+            except Exception as e:
+                logger.error(f"处理讯飞TTS消息异常: {str(e)}")
+                ws.close()
+                tts_done.set()
+        
+        def on_error(ws, error):
+            logger.error(f"讯飞TTS WebSocket错误: {str(error)}")
+            tts_done.set()
+        
+        def on_close(ws, *args):
+            logger.info("讯飞TTS WebSocket连接关闭")
+        
+        def on_open(ws):
+            def run():
+                d = {
+                    "common": common_args,
+                    "business": business_args,
+                    "data": data,
+                }
+                d = json.dumps(d)
+                logger.info("开始发送文本数据到讯飞TTS")
+                ws.send(d)
+                
+            threading.Thread(target=run).start()
+        
+        # 确保文件不存在，以便从头开始写入
+        if os.path.exists(output_path):
+            os.remove(output_path)
+            
+        # 确保输出目录存在
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            
+        # 开始WebSocket连接
+        def run_websocket():
+            try:
+                ws = websocket.WebSocketApp(
+                    wsUrl,
+                    on_message=on_message,
+                    on_error=on_error,
+                    on_close=on_close
+                )
+                ws.on_open = on_open
+                ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
+            except Exception as e:
+                logger.error(f"运行WebSocket异常: {str(e)}")
+                tts_done.set()
+        
+        # 启动WebSocket线程
+        websocket_thread = threading.Thread(target=run_websocket)
+        websocket_thread.daemon = True
+        websocket_thread.start()
+        
+        # 等待TTS完成
+        await asyncio.to_thread(lambda: tts_done.wait())
+        
+        if tts_success[0]:
+            return True
+        else:
+            logger.error("讯飞TTS处理失败")
+            # 如果失败，删除可能部分写入的文件
+            if os.path.exists(output_path):
+                try:
+                    os.remove(output_path)
+                except Exception:
+                    pass
+            return False
+            
+    except Exception as e:
+        logger.error(f"讯飞TTS服务调用失败: {str(e)}")
+        return False

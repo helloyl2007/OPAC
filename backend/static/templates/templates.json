@@ -1,0 +1,98 @@
+[
+  {
+    "id": "1",
+    "name": "",
+    "preview": "/static/templates/previews/01.jpg",
+    "file_name": "template_01.pptx"
+  },
+  {
+    "id": "2",
+    "name": "",
+    "preview": "/static/templates/previews/02.jpg",
+    "file_name": "template_02.pptx"
+  },
+  {
+    "id": "3",
+    "name": "",
+    "preview": "/static/templates/previews/03.jpg",
+    "file_name": "template_03.pptx"
+  },
+  {
+    "id": "4",
+    "name": "",
+    "preview": "/static/templates/previews/04.jpg",
+    "file_name": "template_04.pptx"
+  },
+  {
+    "id": "5",
+    "name": "",
+    "preview": "/static/templates/previews/05.jpg",
+    "file_name": "template_05.pptx"
+  },
+  {
+    "id": "6",
+    "name": "",
+    "preview": "/static/templates/previews/06.jpg",
+    "file_name": "template_06.pptx"
+  },
+  {
+    "id": "7",
+    "name": "",
+    "preview": "/static/templates/previews/07.jpg",
+    "file_name": "template_07.pptx"
+  },
+  {
+    "id": "8",
+    "name": "",
+    "preview": "/static/templates/previews/08.jpg",
+    "file_name": "template_08.pptx"
+  },
+  {
+    "id": "9",
+    "name": "",
+    "preview": "/static/templates/previews/09.jpg",
+    "file_name": "template_09.pptx"
+  },
+  {
+    "id": "10",
+    "name": "",
+    "preview": "/static/templates/previews/10.jpg",
+    "file_name": "template_10.pptx"
+  },
+  {
+    "id": "11",
+    "name": "",
+    "preview": "/static/templates/previews/11.jpg",
+    "file_name": "template_11.pptx"
+  },
+  {
+    "id": "12",
+    "name": "",
+    "preview": "/static/templates/previews/12.jpg",
+    "file_name": "template_12.pptx"
+  },
+  {
+    "id": "13",
+    "name": "",
+    "preview": "/static/templates/previews/13.jpg",
+    "file_name": "template_13.pptx"
+  },
+  {
+    "id": "14",
+    "name": "",
+    "preview": "/static/templates/previews/14.jpg",
+    "file_name": "template_14.pptx"
+  },
+  {
+    "id": "15",
+    "name": "",
+    "preview": "/static/templates/previews/15.jpg",
+    "file_name": "template_15.pptx"
+  },
+  {
+    "id": "16",
+    "name": "",
+    "preview": "/static/templates/previews/16.jpg",
+    "file_name": "template_16.pptx"
+  }
+]

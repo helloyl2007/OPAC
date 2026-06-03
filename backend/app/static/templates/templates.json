@@ -1,0 +1,14 @@
+[
+    {
+      "id": "1",
+      "name": "简约商务",
+      "file_name": "template1.pptx",
+      "preview": "/static/previews/template1.jpg"
+    },
+    {
+      "id": "2",
+      "name": "科技风格",
+      "file_name": "template2.pptx",
+      "preview": "/static/previews/template2.jpg"
+    }
+  ]

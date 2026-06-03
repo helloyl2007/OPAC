@@ -1,0 +1,27 @@
+fastapi==0.115.11
+uvicorn==0.21.1
+jinja2==3.1.2
+python-multipart==0.0.6 
+aiofiles==23.2.1
+aiohttp==3.9.3 #百练sdk依赖
+dashscope>=1.17.0 #百练sdk依赖
+sqlalchemy==2.0.23
+pymysql==1.1.0
+passlib==1.7.4
+bcrypt==4.0.1
+itsdangerous==2.1.2
+starlette==0.46.1
+python-dotenv==1.0.0
+openai==1.61.1
+python-pptx==0.6.21
+pydantic-settings==2.1.0
+PyJWT==2.8.0           # JWT token handling
+python-jose[cryptography]==3.3.0  # JWT support
+passlib[bcrypt]==1.7.4           # Password hashing
+PyMuPDF==1.25.3
+moviepy==1.0.3
+aliyun-python-sdk-core==2.15.1
+opencv-python==4.11.0.86
+PyPDF2==3.0.1
+textract==1.6.5
+python-docx==0.8.11
