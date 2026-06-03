@@ -96,7 +96,11 @@ BAILIAN_APP_ID=你的百炼应用ID
 - 可在百炼平台创建知识库，并将知识库绑定到该应用，实现知识增强问答。
 - 将应用 ID 填入 `BAILIAN_APP_ID`。
 
-4. 启动后端服务
+4. TTS 配置(可选)
+- 创建阿里云TTS应用。
+- 在backend/app/utils/tts.py，填写 `access_key_id` 和 `access_key_secret`。
+
+5. 启动后端服务
 ```powershell
 cd backend
 python main.py
@@ -104,7 +108,7 @@ python main.py
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-5. 与前端联调
+6. 与前端联调
 - 前端环境变量 `VITE_API_BASE_URL` 指向后端地址（如 `http://127.0.0.1:8000`）。
 
 **本地开发**:
