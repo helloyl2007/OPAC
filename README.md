@@ -1,8 +1,8 @@
-# AI教学助手（frontend）
+# AI教学助手
 
 **项目简介**:
-- **用途**: AI智教助手系统的前端界面
-- **技术栈**: Vue + Vite（参考 `package.json`）。
+- **用途**: AI智教助手系统
+- **技术栈**: Vue + Vite（参考 `package.json`）+ FastAPI。
 
 **核心功能**
 
@@ -68,6 +68,44 @@ https://www.bilibili.com/video/BV1QP2qBMEsn/
 **准备工作**:
 - **Node**: 建议使用 Node.js 16+。
 - **包管理**: 仓库包含 `pnpm-lock.yaml`，优先使用 `pnpm`，也可使用 `npm` 或 `yarn`。
+
+---
+
+## 后端部署
+
+后端基于 FastAPI，LLM 接入阿里云百炼平台（DashScope/应用方式）。
+
+1. 安装 Python 依赖（建议 Python 3.10+）
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+2. 配置环境变量（`backend/.env`）
+```env
+OPENAI_API_KEY=你的百炼API-KEY
+OPENAI_API_BASE=https://dashscope.aliyuncs.com/api/v1
+BAILIAN_APP_ID=你的百炼应用ID
+# OPENAI_MODEL=qwen-plus  MODEL这里不用填，在百炼应用里配置即可
+```
+
+3. 在阿里云百炼平台创建并配置应用
+- 在百炼创建应用（用于对话/内容生成）。
+- 可在百炼平台创建知识库，并将知识库绑定到该应用，实现知识增强问答。
+- 将应用 ID 填入 `BAILIAN_APP_ID`。
+
+4. 启动后端服务
+```powershell
+cd backend
+python main.py
+# 或
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+5. 与前端联调
+- 前端环境变量 `VITE_API_BASE_URL` 指向后端地址（如 `http://127.0.0.1:8000`）。
 
 **本地开发**:
 - 安装依赖（pnpm）:
