@@ -1,4 +1,4 @@
-# AI教学助手
+# OPAC AI教学助手
 
 **项目简介**:
 - **用途**: AI智教助手系统
@@ -8,6 +8,11 @@
 
 视频介绍：
 https://www.bilibili.com/video/BV1QP2qBMEsn/
+包括：
+生成复习PPT课件
+课件PPT一键转成视频
+教案生成
+按需出题
 
 ---
 
